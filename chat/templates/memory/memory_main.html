@@ -1,7 +1,7 @@
 {% load markdown_extras %}
 <!-- Header -->
 <header class="bg-surface-secondary px-5 py-4 border-b border-border">
-    <h1 class="text-2xl text-accent-cyan">User Memory</h1>
+    <h1 class="text-2xl text-foreground">User Memory</h1>
     <div class="text-xs text-foreground-secondary mt-1">Model: {{ model }}</div>
 </header>
 
@@ -29,7 +29,7 @@
     </div>
 
     <!-- Memory Generation Settings -->
-    <h2 class="text-accent-cyan text-xl mb-4">Memory Generation Limits</h2>
+    <h2 class="text-foreground text-xl mb-4">Memory Generation Limits</h2>
     <div class="mb-5"
          x-data="{
              userHistoryMaxThreads: {{ user_history_max_threads }},
@@ -52,13 +52,13 @@
                 <label class="block text-xs text-foreground-secondary mb-1">Recent Threads</label>
                 <input type="number" x-model="userHistoryMaxThreads" @input="saved = false"
                        min="0" max="100" placeholder="0"
-                       class="w-20 p-2 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-cyan">
+                       class="w-20 p-2 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-secondary">
             </div>
             <div>
                 <label class="block text-xs text-foreground-secondary mb-1">Messages Per Thread</label>
                 <input type="number" x-model="userHistoryMessagesPerThread" @input="saved = false"
                        min="0" max="10000" step="100" placeholder="0"
-                       class="w-24 p-2 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-cyan">
+                       class="w-24 p-2 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-secondary">
             </div>
             <button type="button" @click="save()" x-show="!saved" :disabled="saving"
                     class="px-3 py-2 bg-accent text-foreground-on-accent rounded text-sm font-medium cursor-pointer hover:bg-accent-hover">
@@ -107,7 +107,7 @@
                    placeholder="Update your memory..."
                    required
                    autocomplete="off"
-                   class="flex-1 p-3 border border-border rounded bg-surface text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                   class="flex-1 p-3 border border-border rounded bg-surface text-foreground text-base focus:outline-none focus:border-accent-secondary">
             <button type="submit" class="px-6 py-3 bg-accent text-foreground-on-accent border border-accent rounded cursor-pointer font-medium text-base hover:bg-accent-hover">Update</button>
         </form>
     </div>

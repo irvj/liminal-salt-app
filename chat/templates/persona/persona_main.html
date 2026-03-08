@@ -2,7 +2,7 @@
 <!-- Header -->
 <header class="bg-surface-secondary px-5 py-4 border-b border-border flex items-center justify-between">
     <div>
-        <h1 class="text-2xl text-accent-cyan">Persona Settings</h1>
+        <h1 class="text-2xl text-foreground">Persona Settings</h1>
         <div class="text-xs text-foreground-secondary mt-1">Default: <span id="default-persona-display">{{ default_persona|display_name }}</span></div>
     </div>
     <button type="button" class="px-4 py-2 bg-accent text-foreground-on-accent rounded font-medium cursor-pointer hover:bg-accent-hover text-sm" onclick="openNewPersonaModal()">New Persona</button>
@@ -45,8 +45,8 @@
                            @keydown.arrow-down.prevent="highlightNext()"
                            @keydown.arrow-up.prevent="highlightPrev()"
                            placeholder="Search personas..."
-                           :class="selected ? 'border-accent-cyan bg-surface' : 'border-border bg-surface-secondary'"
-                           class="w-full p-3 pr-10 border rounded text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                           :class="selected ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'"
+                           class="w-full p-3 pr-10 border rounded text-foreground text-base focus:outline-none focus:border-accent-secondary">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary pointer-events-none">{% include 'icons/chevron-down.html' with class='w-4 h-4' %}</span>
 
                     <!-- Dropdown -->
@@ -73,7 +73,7 @@
             <div class="flex flex-col md:flex-row gap-3 md:flex-wrap mt-4">
                 <button type="button" class="w-full md:w-auto px-6 py-3 bg-border text-foreground rounded font-medium cursor-pointer hover:bg-accent hover:text-foreground-on-accent" onclick="openEditPersonaModal()">Edit Persona</button>
                 <button type="button" class="w-full md:w-auto px-6 py-3 bg-border text-foreground rounded font-medium cursor-pointer hover:bg-accent hover:text-foreground-on-accent" onclick="openEditPersonaModelModal()">Edit Model</button>
-                <button type="button" class="w-full md:w-auto persona-context-files-btn px-6 py-3 bg-border text-foreground rounded font-medium cursor-pointer hover:bg-accent hover:text-foreground-on-accent" onclick="openPersonaContextFilesModal()">Context Files{% if persona_context_files %} <span class="badge bg-accent-cyan text-surface text-xs px-1.5 py-0.5 rounded-full ml-1">{{ persona_context_files|length }}</span>{% endif %}</button>
+                <button type="button" class="w-full md:w-auto persona-context-files-btn px-6 py-3 bg-border text-foreground rounded font-medium cursor-pointer hover:bg-accent hover:text-foreground-on-accent" onclick="openPersonaContextFilesModal()">Context Files{% if persona_context_files %} <span class="badge bg-accent text-foreground-on-accent text-xs px-1.5 py-0.5 rounded-full ml-1">{{ persona_context_files|length }}</span>{% endif %}</button>
                 <button type="button"
                         class="w-full md:w-auto px-6 py-3 bg-border rounded font-medium"
                         :class="selected === 'assistant' ? 'text-foreground-secondary cursor-not-allowed opacity-50' : 'text-foreground cursor-pointer hover:bg-danger hover:text-foreground-on-accent'"
@@ -95,7 +95,7 @@
 
     {% if persona_model %}
     <div class="text-sm text-foreground-secondary mt-4 mb-2">
-        <strong>Model override:</strong> <span class="text-accent-cyan">{{ persona_model }}</span>
+        <strong>Model override:</strong> <span class="text-accent-secondary">{{ persona_model }}</span>
     </div>
     {% endif %}
 

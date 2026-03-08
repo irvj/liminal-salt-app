@@ -18,7 +18,7 @@
 
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
-  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-secondary: var(--accent-secondary);
 
   --color-success: var(--success);
   --color-danger: var(--danger);
@@ -58,6 +58,44 @@
   }
 }
 
+/* ===== View Transitions API ===== */
+/* Only animate the main content area, not the entire page */
+/* Exclude chat threads (which have #messages) due to scroll-to-bottom behavior */
+#main-content:not(:has(#messages)) {
+  view-transition-name: main-content;
+}
+
+::view-transition-old(main-content),
+::view-transition-new(main-content) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+
+::view-transition-old(main-content) {
+  animation-name: view-fade-out;
+}
+
+::view-transition-new(main-content) {
+  animation-name: view-fade-in;
+}
+
+/* Disable transition on root to prevent sidebar flicker */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+@keyframes view-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes view-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* ===== DARK THEME (Liminal Salt) - Default ===== */
 :root {
   /* Surfaces/Backgrounds */
@@ -68,18 +106,18 @@
   /* Text/Foreground */
   --foreground: #e8e4dc;
   --foreground-secondary: #c5c1b8;
-  --foreground-muted: #7a7870;
+  --foreground-muted: #9e9b93;
   --foreground-on-accent: #1a1c1b;
 
   /* Accent colors */
   --accent: #8fac98;
   --accent-hover: #a3bfac;
-  --accent-cyan: #7a9e9e;
+  --accent-secondary: #95bebe;
 
   /* Status colors */
   --success: #8fac98;
-  --danger: #c47a7a;
-  --danger-hover: #d48a8a;
+  --danger: #cc8585;
+  --danger-hover: #d99292;
   --warning: #c9a86c;
 
   /* Borders */
@@ -100,25 +138,25 @@
   /* Text */
   --foreground: #2d2b28;
   --foreground-secondary: #5a5753;
-  --foreground-muted: #9a9590;
+  --foreground-muted: #6b6762;
   --foreground-on-accent: #f5f2ed;
 
   /* Accents */
-  --accent: #5d7a65;
-  --accent-hover: #4a6b52;
-  --accent-cyan: #4a7a7a;
+  --accent: #506e58;
+  --accent-hover: #425f4a;
+  --accent-secondary: #3e5d5d;
 
   /* Status colors */
-  --success: #5d7a65;
-  --danger: #b85c5c;
-  --danger-hover: #a64e4e;
-  --warning: #b8923d;
+  --success: #506e58;
+  --danger: #a54d4d;
+  --danger-hover: #984242;
+  --warning: #7d6325;
 
   /* Borders */
   --border: #ddd8d0;
 
   /* Bubbles */
-  --user-bubble: #5d7a65;
+  --user-bubble: #506e58;
   --assistant-bubble: #ebe7e0;
 }
 
@@ -126,7 +164,7 @@
 [data-theme="light"] .prose {
   --tw-prose-body: #2d2b28;
   --tw-prose-headings: #2d2b28;
-  --tw-prose-links: #5d7a65;
+  --tw-prose-links: #506e58;
   --tw-prose-bold: #2d2b28;
   --tw-prose-code: #2d2b28;
   --tw-prose-quotes: #5a5753;
@@ -201,7 +239,7 @@
   background-repeat: no-repeat;
   background-size: 1.25rem;
   &:hover {
-    border-color: var(--accent-cyan);
+    border-color: var(--accent-secondary);
   }
 }
 

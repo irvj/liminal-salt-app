@@ -7,7 +7,7 @@
 {% if pinned_sessions %}
 <!-- Pinned Section -->
 <div x-data="{ open: true }">
-    <button @click="open = !open" class="flex items-center gap-1 w-full p-2.5 mt-3 bg-surface-elevated text-accent-cyan font-semibold rounded text-left text-sm cursor-pointer">
+    <button @click="open = !open" class="flex items-center gap-1 w-full p-2.5 mt-3 bg-surface-elevated text-foreground font-semibold rounded text-left text-sm cursor-pointer">
         <span x-show="open">{% include 'icons/chevron-down.html' with class='w-4 h-4' %}</span>
         <span x-show="!open">{% include 'icons/chevron-right.html' with class='w-4 h-4' %}</span>
         {% include 'icons/star-filled.html' with class='w-4 h-4' %} Pinned ({{ pinned_sessions|length }})
@@ -47,7 +47,7 @@
 {% for persona, persona_sessions in grouped_sessions.items %}
     <!-- Using Alpine.js for collapsible groups -->
     <div x-data="{ open: true }">
-        <button @click="open = !open" class="flex items-center gap-1 w-full p-2.5 mt-3 bg-surface-elevated text-accent-cyan font-semibold rounded text-left text-sm cursor-pointer">
+        <button @click="open = !open" class="flex items-center gap-1 w-full p-2.5 mt-3 bg-surface-elevated text-foreground font-semibold rounded text-left text-sm cursor-pointer">
             <span x-show="open">{% include 'icons/chevron-down.html' with class='w-4 h-4' %}</span>
             <span x-show="!open">{% include 'icons/chevron-right.html' with class='w-4 h-4' %}</span>
             {{ persona|display_name }} ({{ persona_sessions|length }})

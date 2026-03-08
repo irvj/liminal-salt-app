@@ -1,7 +1,7 @@
 {% load markdown_extras %}
 <!-- Header -->
 <header class="bg-surface-secondary px-5 py-4 border-b border-border">
-    <h1 class="text-2xl text-accent-cyan">Settings</h1>
+    <h1 class="text-2xl text-foreground">Settings</h1>
 </header>
 
 <!-- Settings Content -->
@@ -11,7 +11,7 @@
     {% endif %}
 
     <!-- Theme Section -->
-    <h2 class="text-accent-cyan text-xl mb-4">Theme</h2>
+    <h2 class="text-foreground text-xl mb-4">Theme</h2>
     <div class="mb-6">
         <label class="block mb-2 font-medium">Color Theme:</label>
         <div class="flex flex-col md:flex-row md:items-center gap-3">
@@ -20,7 +20,7 @@
                 <button type="button"
                         @click.stop="open = !open"
                         class="w-full p-3 border rounded text-left flex items-center justify-between cursor-pointer"
-                        :class="selected ? 'border-accent-cyan bg-surface' : 'border-border bg-surface-secondary'">
+                        :class="selected ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'">
                     <span x-text="selectedDisplay || 'Select a theme...'"></span>
                     <svg class="w-4 h-4 text-foreground-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Provider & Model Section -->
-    <h2 class="text-accent-cyan text-xl mb-4">Provider & Model</h2>
+    <h2 class="text-foreground text-xl mb-4">Provider & Model</h2>
     <div class="mb-6"
          x-data="providerModelSettings"
          data-provider="{{ provider }}"
@@ -86,7 +86,7 @@
                 <button type="button"
                         @click.stop="providerOpen = !providerOpen"
                         class="w-full md:max-w-md p-3 border rounded text-left flex items-center justify-between cursor-pointer"
-                        :class="selectedProvider ? 'border-accent-cyan bg-surface' : 'border-border bg-surface-secondary'">
+                        :class="selectedProvider ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'">
                     <span x-text="selectedProviderName || 'Select a provider...'"></span>
                     <svg class="w-4 h-4 text-foreground-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -117,7 +117,7 @@
             <p class="text-foreground-secondary text-sm mb-2">
                 <template x-if="currentProviderData">
                     <span>Get your API key from
-                        <a :href="currentProviderData.api_key_url" target="_blank" class="text-accent-cyan hover:underline" x-text="currentProviderData.name"></a>
+                        <a :href="currentProviderData.api_key_url" target="_blank" class="text-accent hover:underline" x-text="currentProviderData.name"></a>
                     </span>
                 </template>
             </p>
@@ -126,7 +126,7 @@
                        x-model="apiKey"
                        @input="onApiKeyChange()"
                        :placeholder="hasExistingKey && !apiKeyModified ? '••••••••••••••••' : (currentProviderData?.api_key_placeholder || 'Enter API key...')"
-                       class="flex-1 p-3 border border-border rounded bg-surface-secondary text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                       class="flex-1 p-3 border border-border rounded bg-surface-secondary text-foreground text-base focus:outline-none focus:border-accent-secondary">
                 <button type="button"
                         @click="validateApiKey()"
                         x-show="apiKeyModified && apiKey"
@@ -154,8 +154,8 @@
                        @keydown.arrow-down.prevent="highlightNextModel()"
                        @keydown.arrow-up.prevent="highlightPrevModel()"
                        placeholder="Search models..."
-                       :class="selectedModel ? 'border-accent-cyan bg-surface' : 'border-border bg-surface-secondary'"
-                       class="w-full p-3 border rounded text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                       :class="selectedModel ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'"
+                       class="w-full p-3 border rounded text-foreground text-base focus:outline-none focus:border-accent-secondary">
 
                 <div x-cloak
                      x-show="modelOpen && filteredModels.length > 0"
@@ -187,7 +187,7 @@
     </div>
 
     <!-- Chat Settings Section -->
-    <h2 class="text-accent-cyan text-xl mb-4">Chat Settings</h2>
+    <h2 class="text-foreground text-xl mb-4">Chat Settings</h2>
     <div class="mb-6">
         <label class="block mb-2 font-medium">Context History Limit:</label>
         <p class="text-foreground-secondary text-sm mb-2">
@@ -214,7 +214,7 @@
                    min="10"
                    max="500"
                    step="10"
-                   class="w-24 p-3 border border-border rounded bg-surface-secondary text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                   class="w-24 p-3 border border-border rounded bg-surface-secondary text-foreground text-base focus:outline-none focus:border-accent-secondary">
             <span class="text-foreground-secondary">message pairs</span>
             <button type="button"
                     @click="save()"

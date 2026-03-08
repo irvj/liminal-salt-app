@@ -42,7 +42,7 @@
                    x-model="newTitle"
                    maxlength="50"
                    @keydown.enter.prevent="$refs.renameForm.requestSubmit()"
-                   class="w-full p-2.5 border border-border rounded bg-surface text-foreground text-sm mb-2 focus:outline-none focus:border-accent-cyan"
+                   class="w-full p-2.5 border border-border rounded bg-surface text-foreground text-sm mb-2 focus:outline-none focus:border-accent-secondary"
                    placeholder="Enter new title...">
             <p class="text-foreground-secondary text-xs mb-5">50 character limit</p>
             <form x-ref="renameForm"
@@ -94,12 +94,12 @@
                 <input type="text" id="persona-name" x-model="displayName"
                        :disabled="isAssistant"
                        :class="isAssistant ? 'opacity-50 cursor-not-allowed' : ''"
-                       class="w-full p-2.5 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-cyan"
+                       class="w-full p-2.5 border border-border rounded bg-surface text-foreground text-sm focus:outline-none focus:border-accent-secondary"
                        @input="displayName = displayName.replace(/[^a-zA-Z0-9 ]/g, '')">
                 <p x-show="isAssistant" class="text-foreground-secondary text-xs mt-1">The default persona cannot be renamed.</p>
             </div>
             <label class="block mb-2 font-medium text-foreground-secondary">Persona File:</label>
-            <textarea x-model="content" class="w-full h-[400px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-cyan"></textarea>
+            <textarea x-model="content" class="w-full h-[400px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-secondary"></textarea>
             <div class="flex gap-3 justify-end">
                 <button @click="showModal = false" class="px-4 py-2 bg-border text-foreground rounded font-medium cursor-pointer hover:bg-accent hover:text-foreground-on-accent">Cancel</button>
                 <button @click="savePersona()" class="px-4 py-2 bg-success text-foreground-on-accent rounded font-medium cursor-pointer hover:bg-success/80">Save</button>
@@ -134,7 +134,7 @@
          class="fixed inset-0 bg-black/60 flex items-center justify-center z-modal"
          @click.self="showModal = false">
         <div class="bg-surface-secondary rounded-lg p-6 max-w-[500px] w-[90%] border border-border">
-            <h3 class="text-foreground mb-2">Edit Model for <span class="text-accent-cyan" x-text="displayName"></span></h3>
+            <h3 class="text-foreground mb-2">Edit Model for <span class="text-accent-secondary" x-text="displayName"></span></h3>
             <p class="text-foreground-secondary text-sm mb-4">Select a model for this persona, or clear to use the default.</p>
 
             <!-- Status Messages -->
@@ -169,8 +169,8 @@
                            @keydown.arrow-down.prevent="highlightNext()"
                            @keydown.arrow-up.prevent="highlightPrev()"
                            placeholder="Search models..."
-                           :class="selectedModel ? 'border-accent-cyan bg-surface' : 'border-border bg-surface-secondary'"
-                           class="w-full p-3 border rounded text-foreground text-base focus:outline-none focus:border-accent-cyan">
+                           :class="selectedModel ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'"
+                           class="w-full p-3 border rounded text-foreground text-base focus:outline-none focus:border-accent-secondary">
 
                     <div x-cloak
                          x-show="modelOpen && filteredModels.length > 0"
@@ -222,7 +222,7 @@
 
             <!-- Drop Zone -->
             <div class="border-2 border-dashed border-border rounded-lg p-10 text-center cursor-pointer transition-all mb-5 hover:border-accent hover:bg-accent/10"
-                 :class="{ 'border-accent-cyan bg-accent-cyan/15': isDragging }"
+                 :class="{ 'border-accent-secondary bg-accent-secondary/15': isDragging }"
                  @dragover.prevent="isDragging = true"
                  @dragleave.prevent="isDragging = false"
                  @drop.prevent="handleDrop($event)"
@@ -254,7 +254,7 @@
                             <input type="checkbox" :checked="file.enabled" @change="toggleFile(file.name)" class="opacity-0 w-0 h-0 peer">
                             <span class="absolute cursor-pointer inset-0 bg-surface-elevated rounded-full transition-colors peer-checked:bg-accent before:absolute before:content-[''] before:h-[18px] before:w-[18px] before:left-[3px] before:bottom-[3px] before:bg-foreground-secondary before:rounded-full before:transition-transform peer-checked:before:translate-x-5"></span>
                         </label>
-                        <span class="flex-1 text-foreground cursor-pointer hover:text-accent-cyan" x-text="file.name" @click="openEditFile(file.name)"></span>
+                        <span class="flex-1 text-foreground cursor-pointer hover:text-accent-secondary" x-text="file.name" @click="openEditFile(file.name)"></span>
                         <button class="bg-transparent border-none text-danger cursor-pointer px-1 py-1 hover:text-warning" @click="deleteFile(file.name)">{% include 'icons/x.html' with class='w-5 h-5' %}</button>
                     </div>
                 </template>
@@ -274,9 +274,9 @@
          @click.self="editModal.show = false">
         <div class="bg-surface-secondary rounded-lg p-6 max-w-modal-lg w-[90%] border border-border">
             <h2 class="text-foreground mb-2">Edit File</h2>
-            <p class="text-accent-cyan font-mono mb-4" x-text="editModal.filename"></p>
+            <p class="text-accent-secondary font-mono mb-4" x-text="editModal.filename"></p>
             <textarea x-model="editModal.content"
-                      class="w-full h-[300px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-cyan"
+                      class="w-full h-[300px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-secondary"
                       placeholder="File content..."></textarea>
             <div x-show="editModal.status" class="p-2 px-3 rounded mb-4 text-sm" :class="editModal.statusType === 'success' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'">
                 <span x-text="editModal.status"></span>
@@ -302,7 +302,7 @@
 
             <!-- Drop Zone -->
             <div class="border-2 border-dashed border-border rounded-lg p-10 text-center cursor-pointer transition-all mb-5 hover:border-accent hover:bg-accent/10"
-                 :class="{ 'border-accent-cyan bg-accent-cyan/15': isDragging }"
+                 :class="{ 'border-accent-secondary bg-accent-secondary/15': isDragging }"
                  @dragover.prevent="isDragging = true"
                  @dragleave.prevent="isDragging = false"
                  @drop.prevent="handleDrop($event)"
@@ -334,7 +334,7 @@
                             <input type="checkbox" :checked="file.enabled" @change="toggleFile(file.name)" class="opacity-0 w-0 h-0 peer">
                             <span class="absolute cursor-pointer inset-0 bg-surface-elevated rounded-full transition-colors peer-checked:bg-accent before:absolute before:content-[''] before:h-[18px] before:w-[18px] before:left-[3px] before:bottom-[3px] before:bg-foreground-secondary before:rounded-full before:transition-transform peer-checked:before:translate-x-5"></span>
                         </label>
-                        <span class="flex-1 text-foreground cursor-pointer hover:text-accent-cyan" x-text="file.name" @click="openEditFile(file.name)"></span>
+                        <span class="flex-1 text-foreground cursor-pointer hover:text-accent-secondary" x-text="file.name" @click="openEditFile(file.name)"></span>
                         <button class="bg-transparent border-none text-danger cursor-pointer px-1 py-1 hover:text-warning" @click="deleteFile(file.name)">{% include 'icons/x.html' with class='w-5 h-5' %}</button>
                     </div>
                 </template>
@@ -354,9 +354,9 @@
          @click.self="editModal.show = false">
         <div class="bg-surface-secondary rounded-lg p-6 max-w-modal-lg w-[90%] border border-border">
             <h2 class="text-foreground mb-2">Edit File</h2>
-            <p class="text-accent-cyan font-mono mb-4" x-text="editModal.filename"></p>
+            <p class="text-accent-secondary font-mono mb-4" x-text="editModal.filename"></p>
             <textarea x-model="editModal.content"
-                      class="w-full h-[300px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-cyan"
+                      class="w-full h-[300px] bg-surface border border-border rounded text-foreground font-mono text-sm p-3 resize-y mb-4 focus:outline-none focus:border-accent-secondary"
                       placeholder="File content..."></textarea>
             <div x-show="editModal.status" class="p-2 px-3 rounded mb-4 text-sm" :class="editModal.statusType === 'success' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'">
                 <span x-text="editModal.status"></span>
@@ -395,7 +395,7 @@
         <!-- Header with toggle (always visible) -->
         <div class="p-5 pb-0">
             <div class="flex items-center mb-4" :class="collapsed ? 'justify-center' : 'justify-between'">
-                <h2 x-show="!collapsed" class="text-accent-cyan text-xl">Liminal Salt</h2>
+                <h2 x-show="!collapsed" class="text-foreground text-xl">Liminal Salt</h2>
                 <button @click="collapsed = !collapsed"
                         class="text-foreground-secondary hover:text-foreground cursor-pointer text-xl"
                         :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'">
