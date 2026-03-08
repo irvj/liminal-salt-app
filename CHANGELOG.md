@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.14] - 2026-03-08
+
+### Changes
+- refactor views.py into views/ package for better maintainability
+- add success semantic token
+
 ## [0.5.13] - 2026-03-08
 
 ### Changes
