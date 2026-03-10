@@ -792,6 +792,18 @@ function saveDraftNow() {
 }
 
 /**
+ * Clear draft on server (cancel any pending debounced save, then save empty).
+ * Call this on form submit.
+ */
+function clearDraft() {
+    if (draftSaveTimer) {
+        clearTimeout(draftSaveTimer);
+        draftSaveTimer = null;
+    }
+    saveDraftNow();
+}
+
+/**
  * Restore draft to textarea on page load.
  * @param {string} draft - The draft text to restore
  */
