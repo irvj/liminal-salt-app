@@ -1,17 +1,6 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liminal Salt</title>
-    <!-- Load utils.js first for immediate theme initialization -->
-    <script src="{% static 'js/utils.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'css/output.css' %}">
-    <script src="{% static 'js/components.js' %}"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body class="font-sans bg-surface text-foreground">
+{% extends "base.html" %}
+
+{% block body %}
     <div class="max-w-xl mx-auto mt-12 p-5">
         <h1 class="text-foreground text-2xl mb-4">Welcome to Liminal Salt</h1>
         <p class="text-foreground-secondary mb-6">Let's get you set up! This will only take a minute.</p>
@@ -27,37 +16,12 @@
               data-selected-provider="{{ selected_provider|default:'openrouter' }}"
               data-providers='[{% for provider in providers %}{ "id": "{{ provider.id }}", "name": "{{ provider.name }}", "api_key_url": "{{ provider.api_key_url }}", "api_key_placeholder": "{{ provider.api_key_placeholder }}" }{% if not forloop.last %}, {% endif %}{% endfor %}]'>
             {% csrf_token %}
-            <input type="hidden" name="provider" :value="selectedId">
 
             <!-- Provider Selector -->
-            <div class="mb-5">
+            <div class="mb-5" @dropdown-select="onProviderSelect($event.detail)">
                 <label class="block mb-2 font-medium">Select Provider:</label>
-                <div class="relative">
-                    <button type="button"
-                            @click.stop="open = !open"
-                            class="w-full p-3 border rounded text-left flex items-center justify-between cursor-pointer"
-                            :class="selectedId ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'">
-                        <span x-text="selectedName || 'Select a provider...'"></span>
-                        <svg class="w-4 h-4 text-foreground-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-
-                    <!-- Dropdown -->
-                    <div x-show="open"
-                         x-transition:enter="transition ease-out duration-100"
-                         x-transition:leave="transition ease-in duration-75"
-                         @click.away="open = false"
-                         class="absolute w-full mt-1 bg-surface-secondary border border-border rounded-lg shadow-lg z-10">
-                        <template x-for="provider in providers" :key="provider.id">
-                            <button type="button"
-                                    @click="selectProvider(provider)"
-                                    :class="selectedId === provider.id ? 'bg-accent text-foreground-on-accent' : 'text-foreground hover:bg-surface-elevated'"
-                                    class="block w-full px-4 py-2 text-left text-sm cursor-pointer">
-                                <span x-text="provider.name"></span>
-                            </button>
-                        </template>
-                    </div>
+                <div x-data="selectDropdown" :data-items="JSON.stringify(providerItems)" :data-selected="selectedId">
+                    {% include 'components/select_dropdown.html' with placeholder='Select a provider...' name='provider' %}
                 </div>
             </div>
 
@@ -66,7 +30,7 @@
                 <label for="api_key" class="block mb-2 font-medium">Enter your API key:</label>
                 <p class="text-foreground-secondary text-sm mb-2">
                     Get your API key from
-                    <a :href="selectedProvider?.api_key_url || '#'" target="_blank" class="text-accent hover:underline" x-text="selectedName"></a>
+                    <a :href="selectedProvider?.api_key_url || '#'" target="_blank" class="text-accent hover:underline" x-text="selectedProvider?.name || ''"></a>
                 </p>
                 <input
                     type="password"
@@ -79,8 +43,7 @@
                     class="w-full p-3 border border-border rounded bg-surface-secondary text-foreground text-base focus:outline-none focus:border-accent-secondary"
                 >
             </div>
-            <button type="submit" class="px-6 py-3 bg-accent text-foreground-on-accent rounded font-medium cursor-pointer hover:bg-accent-hover">Validate & Continue</button>
+            <button type="submit" tabindex="0" class="px-6 py-3 bg-accent text-foreground-on-accent rounded font-medium cursor-pointer hover:bg-accent-hover">Validate & Continue</button>
         </form>
     </div>
-</body>
-</html>
+{% endblock %}

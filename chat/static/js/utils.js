@@ -642,42 +642,142 @@ function showMemoryModifying(event) {
 }
 
 // =============================================================================
-// Dropdown Scroll Helper
+// Reusable Select Dropdown Component
 // =============================================================================
 
 /**
- * Create dropdown keyboard navigation methods for Alpine.js components.
- * Requires x-ref="dropdown" on the scrollable dropdown container in the template.
- * Returns highlightNext(), highlightPrev(), and scrollToHighlighted() to spread
- * into a component definition.
- * @param {string} listProp - Name of the filtered items property (e.g., 'filteredItems')
- * @param {string} indexProp - Name of the highlighted index property (default: 'highlightedIndex')
- * @returns {Object} Methods to spread into an Alpine component
+ * Reusable Alpine.js select dropdown component.
+ * Paired with the template partial: components/select_dropdown.html
+ *
+ * Usage in a parent component:
+ *   Embed a selectDropdown as a nested x-data, or spread its methods into your
+ *   own component and call _initSelect() in your init().
+ *
+ * Standalone usage (template-only):
+ *   <div x-data="selectDropdown" data-items='[...]' data-selected="id">
+ *       {%  include 'components/select_dropdown.html' with searchable="true" %}
+ *   </div>
+ *
+ * Dispatches 'dropdown-select' custom event with { id, label } detail.
  */
-function dropdownNav(listProp, indexProp = 'highlightedIndex') {
+function selectDropdown() {
     return {
+        // State
+        items: [],
+        selected: '',
+        selectedLabel: '',
+        open: false,
+        search: '',
+        highlightedIndex: 0,
+
+        get filteredItems() {
+            if (!this.search) return this.items;
+            // If search matches the selected item's label, show all items
+            if (this.selected) {
+                const found = this.items.find(i => i.id === this.selected);
+                if (found && this.search === found.label) return this.items;
+            }
+            const s = this.search.toLowerCase();
+            return this.items.filter(i =>
+                i.label.toLowerCase().includes(s) || i.id.toLowerCase().includes(s)
+            );
+        },
+
+        selectItem(item) {
+            this.selected = item.id;
+            this.selectedLabel = item.label;
+            this.search = item.label;
+            this.open = false;
+            this.$dispatch('dropdown-select', { id: item.id, label: item.label });
+        },
+
+        selectHighlighted() {
+            if (this.filteredItems.length > 0) {
+                this.selectItem(this.filteredItems[this.highlightedIndex]);
+            }
+        },
+
         highlightNext() {
-            if (this[indexProp] < this[listProp].length - 1) {
-                this[indexProp]++;
-                this.scrollToHighlighted();
+            if (this.highlightedIndex < this.filteredItems.length - 1) {
+                this.highlightedIndex++;
+                this._scrollToHighlighted();
             }
         },
+
         highlightPrev() {
-            if (this[indexProp] > 0) {
-                this[indexProp]--;
-                this.scrollToHighlighted();
+            if (this.highlightedIndex > 0) {
+                this.highlightedIndex--;
+                this._scrollToHighlighted();
             }
         },
-        scrollToHighlighted() {
+
+        _scrollToHighlighted() {
             this.$nextTick(() => {
                 const dropdown = this.$refs.dropdown;
                 if (!dropdown) return;
                 const items = dropdown.querySelectorAll('[data-dropdown-item]');
-                const highlighted = items?.[this[indexProp]];
+                const highlighted = items?.[this.highlightedIndex];
                 if (highlighted) {
                     highlighted.scrollIntoView({ block: 'nearest' });
                 }
             });
+        },
+
+        /** Set selected by ID (for programmatic updates). */
+        setSelected(id) {
+            this.selected = id;
+            const found = this.items.find(i => i.id === id);
+            this.selectedLabel = found ? found.label : '';
+            this.search = found ? found.label : '';
+        },
+
+        _initSelect() {
+            const el = this.$el;
+
+            // Parse initial items and selected from data attributes
+            this._syncFromAttributes();
+
+            // Watch for reactive data-* attribute changes from parent scope.
+            // Alpine's :data-items="..." updates the DOM attribute; we observe it.
+            const observer = new MutationObserver(() => this._syncFromAttributes());
+            observer.observe(el, { attributes: true, attributeFilter: ['data-items', 'data-selected'] });
+
+            // Dismiss on tab-away: when focus leaves the wrapper entirely.
+            // Deferred to let click handlers on dropdown items fire first.
+            this.$nextTick(() => {
+                const wrapper = this.$refs.dropdownWrapper;
+                if (!wrapper) return;
+                wrapper.addEventListener('focusout', (e) => {
+                    if (!e.relatedTarget || wrapper.contains(e.relatedTarget)) return;
+                    requestAnimationFrame(() => {
+                        if (!wrapper.contains(document.activeElement)) {
+                            this.open = false;
+                        }
+                    });
+                });
+            });
+        },
+
+        _syncFromAttributes() {
+            const el = this.$el;
+            if (el.dataset.items) {
+                try {
+                    const newItems = JSON.parse(el.dataset.items);
+                    // Only update if items actually changed (avoid unnecessary resets)
+                    if (JSON.stringify(newItems) !== JSON.stringify(this.items)) {
+                        this.items = newItems;
+                        this.highlightedIndex = 0;
+                    }
+                } catch (e) { /* ignore parse errors */ }
+            }
+            const attrSelected = el.dataset.selected ?? '';
+            if (attrSelected !== this.selected) {
+                this.setSelected(attrSelected);
+            }
+        },
+
+        init() {
+            this._initSelect();
         }
     };
 }

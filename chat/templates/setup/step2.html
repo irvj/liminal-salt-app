@@ -1,18 +1,6 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liminal Salt</title>
-    <!-- Load utils.js first for immediate theme initialization -->
-    <script src="{% static 'js/utils.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'css/output.css' %}">
-    <style>[x-cloak] { display: none !important; }</style>
-    <script src="{% static 'js/components.js' %}"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body class="font-sans bg-surface text-foreground">
+{% extends "base.html" %}
+
+{% block body %}
     <div class="max-w-xl mx-auto mt-12 p-5">
         <h1 class="text-foreground text-2xl mb-4">Welcome to Liminal Salt</h1>
 
@@ -38,43 +26,21 @@
 
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <!-- Color Theme Dropdown -->
-                    <div class="relative flex-1">
-                        <button type="button"
-                                @click.stop="open = !open"
-                                class="w-full p-3 border rounded text-left flex items-center justify-between cursor-pointer"
-                                :class="selectedTheme ? 'border-accent-secondary bg-surface' : 'border-border bg-surface-secondary'">
-                            <span x-text="selectedDisplay || 'Select a theme...'"></span>
-                            <svg class="w-4 h-4 text-foreground-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-
-                        <div x-cloak
-                             x-show="open"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             @click.away="open = false"
-                             class="absolute w-full mt-1 bg-surface-secondary border border-border rounded-lg shadow-lg z-20">
-                            <template x-for="theme in themes" :key="theme.id">
-                                <button type="button"
-                                        @click="selectTheme(theme)"
-                                        :class="selectedTheme === theme.id ? 'bg-accent text-foreground-on-accent' : 'text-foreground hover:bg-surface-elevated'"
-                                        class="block w-full px-4 py-2 text-left text-sm cursor-pointer">
-                                    <span x-text="theme.name"></span>
-                                </button>
-                            </template>
+                    <div class="flex-1" @dropdown-select="onThemeSelect($event.detail)">
+                        <div x-data="selectDropdown" :data-items="JSON.stringify(themeItems)" :data-selected="selectedTheme">
+                            {% include 'components/select_dropdown.html' with placeholder='Select a theme...' %}
                         </div>
                     </div>
 
                     <!-- Dark/Light Mode Toggle -->
                     <div class="flex gap-2">
-                        <button type="button"
+                        <button type="button" tabindex="0"
                                 @click="setMode('dark')"
                                 :class="selectedMode === 'dark' ? 'bg-accent text-foreground-on-accent' : 'bg-border text-foreground hover:bg-accent hover:text-foreground-on-accent'"
                                 class="flex items-center gap-2 px-4 py-2 rounded font-medium cursor-pointer">
                             {% include 'icons/moon.html' with class='w-5 h-5' %} Dark
                         </button>
-                        <button type="button"
+                        <button type="button" tabindex="0"
                                 @click="setMode('light')"
                                 :class="selectedMode === 'light' ? 'bg-accent text-foreground-on-accent' : 'bg-border text-foreground hover:bg-accent hover:text-foreground-on-accent'"
                                 class="flex items-center gap-2 px-4 py-2 rounded font-medium cursor-pointer">
@@ -88,50 +54,18 @@
             <div class="mb-5"
                  x-data="modelPicker"
                  data-selected-model="{{ selected_model|default:'' }}"
-                 data-models='[{% for model_id, display_name in model_options %}{ "id": "{{ model_id }}", "display": "{{ display_name|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}]'>
+                 data-models='[{% for model_id, display_name in model_options %}{ "id": "{{ model_id }}", "display": "{{ display_name|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}]'
+                 @dropdown-select="onModelSelect($event.detail)">
                 <label class="block mb-2 font-medium">Select a model:</label>
-                <input type="hidden" name="model" :value="selectedId">
-
-                <div class="relative">
-                    <!-- Search input -->
-                    <input type="text"
-                           x-model="search"
-                           @input="highlightedIndex = 0"
-                           @focus="open = true"
-                           @click.stop="open = true"
-                           @keydown.escape="open = false"
-                           @keydown.enter.prevent="selectHighlighted()"
-                           @keydown.arrow-down.prevent="highlightNext()"
-                           @keydown.arrow-up.prevent="highlightPrev()"
-                           placeholder="Search models..."
-                           :class="selectedId ? 'border-accent-secondary bg-surface' : ''"
-                           class="w-full p-3 border border-border rounded bg-surface-secondary text-foreground text-base outline-none focus:outline-none focus:border-accent-secondary">
-
-                    <!-- Dropdown -->
-                    <div x-cloak x-ref="dropdown"
-                         x-show="open && filteredModels.length > 0"
-                         x-transition:enter="transition ease-out duration-100"
-                         x-transition:leave="transition ease-in duration-75"
-                         @click.away="open = false"
-                         class="absolute w-full mt-1 max-h-64 overflow-y-auto bg-surface-secondary border border-border rounded-lg shadow-lg z-10">
-                        <template x-for="(model, index) in filteredModels" :key="model.id">
-                            <button type="button" data-dropdown-item
-                                    @click="selectModel(model)"
-                                    @mouseenter="highlightedIndex = index"
-                                    :class="index === highlightedIndex ? 'bg-accent text-foreground-on-accent' : 'text-foreground hover:bg-surface-elevated'"
-                                    class="block w-full px-4 py-2 text-left text-sm cursor-pointer">
-                                <span x-text="model.display"></span>
-                            </button>
-                        </template>
-                    </div>
+                <div x-data="selectDropdown" :data-items="JSON.stringify(modelItems)" :data-selected="selectedId">
+                    {% include 'components/select_dropdown.html' with searchable='true' placeholder='Search models...' name='model' %}
                 </div>
             </div>
 
-            <button type="submit" id="submitBtn" disabled
+            <button type="submit" id="submitBtn" tabindex="0" disabled
                     class="px-6 py-3 bg-accent text-foreground-on-accent rounded font-medium cursor-pointer hover:bg-accent-hover disabled:bg-border disabled:text-foreground-muted disabled:cursor-not-allowed">
                 Complete Setup
             </button>
         </form>
     </div>
-</body>
-</html>
+{% endblock %}

@@ -18,7 +18,6 @@
           data-personas='[{% for p in personas %}{ "id": "{{ p }}", "display": "{{ p|display_name|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}]'>
         {% csrf_token %}
         <input type="hidden" name="timezone" id="timezone-input" value="">
-        <input type="hidden" name="persona" :value="selected">
 
         <!-- Title -->
         <h1 class="text-4xl text-foreground mb-6">Liminal Salt</h1>
@@ -38,36 +37,9 @@
         </div>
 
         <!-- Persona picker and model display -->
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <button type="button" tabindex="0"
-                        @click="open = !open"
-                        @keydown.escape="open = false"
-                        @keydown.arrow-down.prevent="open = true; highlightNext()"
-                        @keydown.arrow-up.prevent="open = true; highlightPrev()"
-                        @keydown.enter.prevent="if (open) selectHighlighted(); else open = true"
-                        class="flex items-center gap-1 text-foreground-secondary hover:text-foreground text-sm cursor-pointer outline-none focus:ring-1 focus:ring-accent-secondary focus:text-foreground rounded px-1">
-                    {% include 'icons/user-pen.html' with class='w-4 h-4' %}
-                    <span x-text="selectedDisplay"></span>
-                </button>
-
-                <!-- Dropdown -->
-                <div x-cloak x-ref="dropdown"
-                     x-show="open"
-                     x-transition:enter="transition ease-out duration-100"
-                     x-transition:leave="transition ease-in duration-75"
-                     @click.away="open = false"
-                     class="absolute bottom-full left-0 mb-1 min-w-[200px] max-h-64 overflow-y-auto bg-surface-secondary border border-border rounded-lg shadow-lg z-10">
-                    <template x-for="(p, index) in filteredPersonas" :key="p.id">
-                        <button type="button" data-dropdown-item
-                                @click="selectPersona(p)"
-                                @mouseenter="highlightedIndex = index"
-                                :class="index === highlightedIndex ? 'bg-accent text-foreground-on-accent' : 'text-foreground hover:bg-surface-elevated'"
-                                class="block w-full px-4 py-2 text-left text-sm cursor-pointer">
-                            <span x-text="p.display"></span>
-                        </button>
-                    </template>
-                </div>
+        <div class="flex items-center gap-4" @dropdown-select="onPersonaSelect($event.detail)">
+            <div x-data="selectDropdown" :data-items="JSON.stringify(personaItems)" :data-selected="selectedPersona">
+                {% include 'components/select_dropdown.html' with placeholder='Select persona...' name='persona' trigger_class='flex items-center gap-1 text-foreground-secondary hover:text-foreground text-sm cursor-pointer outline-none focus:ring-1 focus:ring-accent-secondary focus:text-foreground rounded px-1' trigger_icon='icons/user-pen.html' %}
             </div>
 
             <!-- Model display -->

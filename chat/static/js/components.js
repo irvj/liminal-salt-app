@@ -10,6 +10,7 @@
 document.addEventListener('alpine:init', () => {
     // Reusable Components
     Alpine.data('collapsibleSection', collapsibleSection);
+    Alpine.data('selectDropdown', selectDropdown);
 
     // Modal Components
     Alpine.data('deleteModal', deleteModal);
@@ -360,14 +361,11 @@ function editPersonaModelModal() {
         displayName: '',
         currentModel: '',
         selectedModel: '',
-        modelSearch: '',
-        models: [],
         modelsLoaded: false,
         loading: false,
         loadError: '',
         defaultModel: '',
-        modelOpen: false,
-        highlightedIndex: 0,
+        _modelItems: [],
         statusMessage: '',
         statusType: '',
         saving: false,
@@ -391,14 +389,9 @@ function editPersonaModelModal() {
                 const data = await response.json();
 
                 if (response.ok && data.models) {
-                    this.models = data.models;
                     this.modelsLoaded = true;
-
-                    // Update modelSearch with current model display name
-                    if (this.currentModel) {
-                        const model = this.models.find(m => m.id === this.currentModel);
-                        this.modelSearch = model ? model.display : this.currentModel;
-                    }
+                    // Convert to {id, label} format for selectDropdown
+                    this._modelItems = data.models.map(m => ({ id: m.id, label: m.display }));
                 } else {
                     this.loadError = data.error || 'Failed to load models';
                 }
@@ -409,31 +402,17 @@ function editPersonaModelModal() {
             }
         },
 
-        get filteredModels() {
-            if (!this.modelSearch) return this.models;
-            const s = this.modelSearch.toLowerCase();
-            return this.models.filter(m =>
-                m.display.toLowerCase().includes(s) || m.id.toLowerCase().includes(s)
-            );
+        /** Called by template: returns items for the dropdown */
+        get modelItems() {
+            return this._modelItems || [];
         },
-
-        selectModel(model) {
-            this.selectedModel = model.id;
-            this.modelSearch = model.display;
-            this.modelOpen = false;
-        },
-
-        selectHighlighted() {
-            if (this.filteredModels.length > 0) {
-                this.selectModel(this.filteredModels[this.highlightedIndex]);
-            }
-        },
-
-        ...dropdownNav('filteredModels'),
 
         clearModel() {
             this.selectedModel = '';
-            this.modelSearch = '';
+        },
+
+        onModelSelect(detail) {
+            this.selectedModel = detail.id;
         },
 
         open(persona, personaModel, defaultModel) {
@@ -444,8 +423,9 @@ function editPersonaModelModal() {
             this.defaultModel = defaultModel;
             this.statusMessage = '';
             this.loadError = '';
-            this.modelSearch = personaModel || '';
             this.showModal = true;
+            this._modelItems = [];
+            this.modelsLoaded = false;
 
             // Fetch models lazily when modal opens
             this.loadModels();
@@ -734,8 +714,6 @@ function providerModelSettings() {
         currentModel: '',
         hasExistingKey: false,
         providers: [],
-        providerOpen: false,
-        providerHighlightedIndex: 0,
         selectedProvider: '',
         selectedProviderName: '',
         apiKey: '',
@@ -743,14 +721,14 @@ function providerModelSettings() {
         apiKeyValid: false,
         apiKeyError: '',
         validating: false,
-        models: [],
-        modelOpen: false,
-        modelSearch: '',
         selectedModel: '',
-        modelHighlightedIndex: 0,
         statusMessage: '',
         statusType: '',
         saving: false,
+
+        // Items for nested selectDropdown components
+        providerItems: [],
+        _modelItems: [],
 
         // URLs (populated from data attributes)
         validateUrl: '',
@@ -764,7 +742,6 @@ function providerModelSettings() {
             this.hasExistingKey = el.dataset.hasExistingKey === 'true';
             this.selectedProvider = el.dataset.provider || 'openrouter';
             this.selectedProviderName = el.dataset.providerName || '';
-            this.modelSearch = el.dataset.model || '';
             this.selectedModel = el.dataset.model || '';
             this.apiKeyValid = el.dataset.hasExistingKey === 'true';
             this.validateUrl = el.dataset.validateUrl || '';
@@ -777,6 +754,9 @@ function providerModelSettings() {
             } catch (e) {
                 this.providers = [];
             }
+
+            // Convert providers to {id, label} for dropdown
+            this.providerItems = this.providers.map(p => ({ id: p.id, label: p.name }));
 
             // Load models if we have an existing key
             if (this.hasExistingKey) {
@@ -792,12 +772,8 @@ function providerModelSettings() {
             return this.apiKeyValid || this.hasExistingKey;
         },
 
-        get filteredModels() {
-            if (!this.modelSearch) return this.models;
-            const s = this.modelSearch.toLowerCase();
-            return this.models.filter(m =>
-                m.display.toLowerCase().includes(s) || m.id.toLowerCase().includes(s)
-            );
+        get modelItems() {
+            return this._modelItems;
         },
 
         get canSave() {
@@ -805,38 +781,22 @@ function providerModelSettings() {
             return hasValidKey && this.selectedModel;
         },
 
-        selectProvider(provider) {
+        onProviderSelect(detail) {
+            const provider = this.providers.find(p => p.id === detail.id);
+            if (!provider) return;
             this.selectedProvider = provider.id;
             this.selectedProviderName = provider.name;
-            this.providerOpen = false;
             if (provider.id !== this.currentProvider) {
                 this.apiKey = '';
                 this.apiKeyModified = true;
                 this.apiKeyValid = false;
-                this.models = [];
+                this._modelItems = [];
                 this.selectedModel = '';
-                this.modelSearch = '';
             }
         },
 
-        selectHighlightedProvider() {
-            if (this.providers.length > 0) {
-                this.selectProvider(this.providers[this.providerHighlightedIndex]);
-            }
-        },
-
-        highlightNextProvider() {
-            if (this.providerHighlightedIndex < this.providers.length - 1) {
-                this.providerHighlightedIndex++;
-                this._scrollDropdown('providerDropdown', this.providerHighlightedIndex);
-            }
-        },
-
-        highlightPrevProvider() {
-            if (this.providerHighlightedIndex > 0) {
-                this.providerHighlightedIndex--;
-                this._scrollDropdown('providerDropdown', this.providerHighlightedIndex);
-            }
+        onModelSelect(detail) {
+            this.selectedModel = detail.id;
         },
 
         onApiKeyChange() {
@@ -858,12 +818,7 @@ function providerModelSettings() {
                 });
                 const data = await response.json();
                 if (data.valid && data.models) {
-                    this.models = data.models;
-                    // Update modelSearch to show display name of current model
-                    const currentModel = this.models.find(m => m.id === this.selectedModel);
-                    if (currentModel) {
-                        this.modelSearch = currentModel.display;
-                    }
+                    this._modelItems = data.models.map(m => ({ id: m.id, label: m.display }));
                 }
             } catch (e) {
                 console.error('Failed to load models:', e);
@@ -890,9 +845,8 @@ function providerModelSettings() {
 
                 if (data.valid) {
                     this.apiKeyValid = true;
-                    this.models = data.models || [];
+                    this._modelItems = (data.models || []).map(m => ({ id: m.id, label: m.display }));
                     this.selectedModel = '';
-                    this.modelSearch = '';
                 } else {
                     this.apiKeyError = data.error || 'Invalid API key';
                 }
@@ -901,41 +855,6 @@ function providerModelSettings() {
             } finally {
                 this.validating = false;
             }
-        },
-
-        selectModel(model) {
-            this.selectedModel = model.id;
-            this.modelSearch = model.display;
-            this.modelOpen = false;
-        },
-
-        selectHighlightedModel() {
-            if (this.filteredModels.length > 0) {
-                this.selectModel(this.filteredModels[this.modelHighlightedIndex]);
-            }
-        },
-
-        highlightNextModel() {
-            if (this.modelHighlightedIndex < this.filteredModels.length - 1) {
-                this.modelHighlightedIndex++;
-                this._scrollDropdown('dropdown', this.modelHighlightedIndex);
-            }
-        },
-
-        highlightPrevModel() {
-            if (this.modelHighlightedIndex > 0) {
-                this.modelHighlightedIndex--;
-                this._scrollDropdown('dropdown', this.modelHighlightedIndex);
-            }
-        },
-
-        _scrollDropdown(refName, index) {
-            this.$nextTick(() => {
-                const dropdown = this.$refs[refName];
-                if (!dropdown) return;
-                const items = dropdown.querySelectorAll('[data-dropdown-item]');
-                if (items[index]) items[index].scrollIntoView({ block: 'nearest' });
-            });
         },
 
         async saveProviderModel() {
@@ -988,53 +907,36 @@ function providerModelSettings() {
 
 function homePersonaPicker() {
     return {
-        open: false,
-        selected: '',
-        selectedDisplay: '',
-        highlightedIndex: 0,
-        personas: [],
+        selectedPersona: '',
+        personaItems: [],
         personaModels: {},
         defaultModel: '',
 
-        get filteredPersonas() {
-            return this.personas;
-        },
-
         get currentModel() {
-            return this.personaModels[this.selected] || this.defaultModel;
+            return this.personaModels[this.selectedPersona] || this.defaultModel;
         },
 
         get currentModelDisplay() {
             const model = this.currentModel;
-            // Extract just the model name (after the slash)
             return model.includes('/') ? model.split('/').pop() : model;
         },
 
-        selectPersona(p) {
-            this.selected = p.id;
-            this.selectedDisplay = p.display;
-            this.open = false;
+        onPersonaSelect(detail) {
+            this.selectedPersona = detail.id;
         },
-
-        selectHighlighted() {
-            if (this.filteredPersonas.length > 0) {
-                this.selectPersona(this.filteredPersonas[this.highlightedIndex]);
-            }
-        },
-
-        ...dropdownNav('filteredPersonas'),
 
         init() {
             const el = this.$el;
 
-            // Parse personas from data attribute
+            // Parse personas from data attribute and convert to {id, label}
             try {
-                this.personas = JSON.parse(el.dataset.personas || '[]');
+                const personas = JSON.parse(el.dataset.personas || '[]');
+                this.personaItems = personas.map(p => ({ id: p.id, label: p.display }));
             } catch (e) {
-                this.personas = [];
+                this.personaItems = [];
             }
 
-            this.selected = el.dataset.defaultPersona || '';
+            this.selectedPersona = el.dataset.defaultPersona || '';
 
             // Load data from hidden element (survives HTMX swaps)
             const dataEl = document.getElementById('home-data');
@@ -1046,9 +948,6 @@ function homePersonaPicker() {
                 }
                 this.defaultModel = dataEl.dataset.defaultModel || '';
             }
-
-            const found = this.personas.find(p => p.id === this.selected);
-            if (found) this.selectedDisplay = found.display;
 
             // Set timezone
             setTimezoneInput();
@@ -1062,29 +961,16 @@ function homePersonaPicker() {
 
 function personaSettingsPicker() {
     return {
-        open: false,
-        search: '',
-        selected: '',
-        highlightedIndex: 0,
-        personas: [],
+        selectedPersona: '',
+        personaItems: [],
         settingsUrl: '',
 
-        get filteredPersonas() {
-            const found = this.personas.find(p => p.id === this.selected);
-            if (found && this.search === found.display) return this.personas;
-            if (!this.search) return this.personas;
-            const s = this.search.toLowerCase();
-            return this.personas.filter(p => p.display.toLowerCase().includes(s) || p.id.toLowerCase().includes(s));
-        },
-
-        selectPersona(p) {
-            this.selected = p.id;
-            this.search = p.display;
-            this.open = false;
+        onPersonaSelect(detail) {
+            this.selectedPersona = detail.id;
             // Trigger HTMX preview (preserve scroll position)
             const scrollContainer = document.querySelector('#main-content .overflow-y-auto');
             const scrollPos = scrollContainer ? scrollContainer.scrollTop : 0;
-            htmx.ajax('GET', this.settingsUrl + '?preview=' + p.id, {target: '#main-content', swap: 'innerHTML'}).then(() => {
+            htmx.ajax('GET', this.settingsUrl + '?preview=' + detail.id, {target: '#main-content', swap: 'innerHTML'}).then(() => {
                 if (scrollContainer) {
                     const newScrollContainer = document.querySelector('#main-content .overflow-y-auto');
                     if (newScrollContainer) newScrollContainer.scrollTop = scrollPos;
@@ -1092,29 +978,19 @@ function personaSettingsPicker() {
             });
         },
 
-        selectHighlighted() {
-            if (this.filteredPersonas.length > 0) {
-                this.selectPersona(this.filteredPersonas[this.highlightedIndex]);
-            }
-        },
-
-        ...dropdownNav('filteredPersonas'),
-
         init() {
             const el = this.$el;
 
-            // Parse personas from data attribute
+            // Parse personas from data attribute and convert to {id, label}
             try {
-                this.personas = JSON.parse(el.dataset.personas || '[]');
+                const personas = JSON.parse(el.dataset.personas || '[]');
+                this.personaItems = personas.map(p => ({ id: p.id, label: p.display }));
             } catch (e) {
-                this.personas = [];
+                this.personaItems = [];
             }
 
-            this.selected = el.dataset.selectedPersona || '';
+            this.selectedPersona = el.dataset.selectedPersona || '';
             this.settingsUrl = el.dataset.settingsUrl || '/persona/';
-
-            const found = this.personas.find(p => p.id === this.selected);
-            if (found) this.search = found.display;
         }
     };
 }
@@ -1125,11 +1001,10 @@ function personaSettingsPicker() {
 
 function providerPicker() {
     return {
-        open: false,
         selectedId: '',
-        selectedName: '',
         selectedProvider: null,
         providers: [],
+        providerItems: [],
 
         init() {
             const el = this.$el;
@@ -1141,22 +1016,23 @@ function providerPicker() {
                 this.providers = [];
             }
 
+            this.providerItems = this.providers.map(p => ({ id: p.id, label: p.name }));
             this.selectedId = el.dataset.selectedProvider || 'openrouter';
 
-            // Auto-select first provider if only one, or find selected
+            // Auto-select first provider if only one
             if (this.providers.length === 1) {
-                this.selectProvider(this.providers[0]);
-            } else if (this.selectedId) {
-                const found = this.providers.find(p => p.id === this.selectedId);
-                if (found) this.selectProvider(found);
+                this.selectedId = this.providers[0].id;
+                this.selectedProvider = this.providers[0];
+            } else {
+                this.selectedProvider = this.providers.find(p => p.id === this.selectedId) || null;
             }
         },
 
-        selectProvider(provider) {
+        onProviderSelect(detail) {
+            const provider = this.providers.find(p => p.id === detail.id);
+            if (!provider) return;
             this.selectedId = provider.id;
-            this.selectedName = provider.name;
             this.selectedProvider = provider;
-            this.open = false;
         }
     };
 }
@@ -1167,36 +1043,13 @@ function providerPicker() {
 
 function modelPicker() {
     return {
-        open: false,
-        search: '',
         selectedId: '',
-        selectedDisplay: '',
-        highlightedIndex: 0,
-        models: [],
+        modelItems: [],
 
-        get filteredModels() {
-            if (!this.search) return this.models;
-            const s = this.search.toLowerCase();
-            return this.models.filter(m =>
-                m.display.toLowerCase().includes(s) || m.id.toLowerCase().includes(s)
-            );
-        },
-
-        selectModel(model) {
-            this.selectedId = model.id;
-            this.selectedDisplay = model.display;
-            this.search = model.display;
-            this.open = false;
+        onModelSelect(detail) {
+            this.selectedId = detail.id;
             this.updateButton();
         },
-
-        selectHighlighted() {
-            if (this.filteredModels.length > 0) {
-                this.selectModel(this.filteredModels[this.highlightedIndex]);
-            }
-        },
-
-        ...dropdownNav('filteredModels'),
 
         updateButton() {
             const btn = document.getElementById('submitBtn');
@@ -1206,23 +1059,15 @@ function modelPicker() {
         init() {
             const el = this.$el;
 
-            // Parse models from data attribute
+            // Parse models from data attribute and convert to {id, label}
             try {
-                this.models = JSON.parse(el.dataset.models || '[]');
+                const models = JSON.parse(el.dataset.models || '[]');
+                this.modelItems = models.map(m => ({ id: m.id, label: m.display }));
             } catch (e) {
-                this.models = [];
+                this.modelItems = [];
             }
 
             this.selectedId = el.dataset.selectedModel || '';
-
-            // If there's a pre-selected model, set the display and search
-            if (this.selectedId) {
-                const found = this.models.find(m => m.id === this.selectedId);
-                if (found) {
-                    this.selectedDisplay = found.display;
-                    this.search = found.display;
-                }
-            }
             this.updateButton();
         }
     };
@@ -1238,37 +1083,19 @@ function modelPicker() {
  */
 function themePicker() {
     return {
-        open: false,
-        themes: [],
-        selected: '',
-        selectedDisplay: '',
-        highlightedIndex: 0,
-        loading: true,
+        themeItems: [],
+        currentTheme: '',
 
-        async selectTheme(theme) {
-            this.selected = theme.id;
-            this.selectedDisplay = theme.name;
-            this.open = false;
-            await loadTheme(theme.id);
-            await saveThemePreference(theme.id, getTheme());
+        async onThemeSelect(detail) {
+            this.currentTheme = detail.id;
+            await loadTheme(detail.id);
+            await saveThemePreference(detail.id, getTheme());
         },
-
-        selectHighlighted() {
-            if (this.themes.length > 0) {
-                this.selectTheme(this.themes[this.highlightedIndex]);
-            }
-        },
-
-        ...dropdownNav('themes'),
 
         async init() {
-            this.themes = await getAvailableThemes();
-            this.loading = false;
-            this.selected = getColorTheme();
-            const found = this.themes.find(t => t.id === this.selected);
-            if (found) {
-                this.selectedDisplay = found.name;
-            }
+            const themes = await getAvailableThemes();
+            this.themeItems = themes.map(t => ({ id: t.id, label: t.name }));
+            this.currentTheme = getColorTheme();
         }
     };
 }
@@ -1283,17 +1110,13 @@ function themePicker() {
  */
 function setupThemePicker() {
     return {
-        open: false,
-        themes: [],
+        themeItems: [],
         selectedTheme: '',
         selectedMode: '',
-        selectedDisplay: '',
 
-        selectTheme(theme) {
-            this.selectedTheme = theme.id;
-            this.selectedDisplay = theme.name;
-            this.open = false;
-            loadTheme(theme.id);
+        onThemeSelect(detail) {
+            this.selectedTheme = detail.id;
+            loadTheme(detail.id);
         },
 
         setMode(mode) {
@@ -1304,20 +1127,17 @@ function setupThemePicker() {
         init() {
             const el = this.$el;
 
-            // Parse themes from data attribute
+            // Parse themes from data attribute and convert to {id, label}
             try {
-                this.themes = JSON.parse(el.dataset.themes || '[]');
+                const themes = JSON.parse(el.dataset.themes || '[]');
+                this.themeItems = themes.map(t => ({ id: t.id, label: t.name }));
             } catch (e) {
-                this.themes = [];
+                this.themeItems = [];
             }
 
             // Check localStorage first for user's actual preference
             this.selectedTheme = localStorage.getItem('colorTheme') || el.dataset.selectedTheme || 'liminal-salt';
             this.selectedMode = localStorage.getItem('theme') || el.dataset.selectedMode || 'dark';
-
-            // Find and set display name
-            const found = this.themes.find(t => t.id === this.selectedTheme);
-            if (found) this.selectedDisplay = found.name;
 
             // Apply the theme to ensure UI matches
             loadTheme(this.selectedTheme);
