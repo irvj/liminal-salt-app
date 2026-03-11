@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.16] - 2026-03-11
+
+### Changes
+- update bump version script to use commits over tags, fix changelog
+
 ## [0.5.15] - 2026-03-11
 
 ### Changes
