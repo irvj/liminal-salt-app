@@ -513,7 +513,7 @@ Upload context files that apply only to a specific persona, enabling separation 
 python run.py
 ```
 
-The launcher automatically creates a virtual environment and installs dependencies on first run. Access at `http://localhost:8000`
+The launcher automatically creates a virtual environment and installs dependencies on first run. Access at `http://localhost:8420`
 
 ### Developer Setup
 
@@ -538,7 +538,7 @@ This runs both the Tailwind CSS watcher and Django server concurrently.
 
 ### First-Time Setup
 
-1. Navigate to `http://localhost:8000`
+1. Navigate to `http://localhost:8420`
 2. Enter your OpenRouter API key
 3. Select a model from the list
 4. Start chatting!

@@ -74,7 +74,7 @@ cd liminal-salt
 python run.py
 ```
 
-The launcher automatically creates a virtual environment and installs dependencies on first run. Open http://localhost:8000 in your browser.
+The launcher automatically creates a virtual environment and installs dependencies on first run. Open http://localhost:8420 in your browser.
 
 ---
 
