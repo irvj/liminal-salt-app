@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.17] - 2026-03-11
+
+### Changes
+- create reusable selectDropdown component, deduplicate all dropdown logic across 9 instances, fix scope collisions and z-index stacking, setup pages extend base.html
+- semantic html, move modals to end of body, add keyboard nav to settings dropdowns, fix tab order with tabindex 0
+- deduplicate dropdown navigation, fix home page keyboard nav and tab order
+- deduplicate context files modals into single parameterized component
+- refactor chat scroll to use flex-direction column-reverse, remove pre-scroll hack
+- remove all inline styles, replace with tailwind utilities and css classes
+
 ## [0.5.16] - 2026-03-11
 
 ### Changes
