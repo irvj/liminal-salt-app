@@ -138,18 +138,32 @@ different cwd (release — embedded assets, no disk dependency), `cargo test
   the root manifest keeps the common dev loop scoped to the library crate so
   core work doesn't pull the WebKit/GTK link.
 
-**Verified headless:** `cargo check`/`cargo clippy -p liminal-salt-desktop`
-both pass (this exercises `tauri-build`'s `tauri.conf.json` validation and
-`generate_context!`), so the scaffold + setup wiring compile against the real
-Tauri v2 API. The Linux WebKit/GTK build deps are installed in this env.
+**Verified headless (no display needed):**
+- `cargo check`/`cargo clippy -p liminal-salt-desktop` pass — exercises
+  `tauri-build`'s `tauri.conf.json` validation + `generate_context!`.
+- **Linux build pipeline** — `cargo tauri build --bundles deb` produces a
+  well-formed `Liminal Salt_0.22.0_amd64.deb` (binary in `usr/bin`, icons in
+  the `hicolor` tree, `.desktop` entry, deps `libwebkit2gtk-4.1-0 libgtk-3-0`).
+  Satisfies the "builds for Linux" success criterion.
+- **Runtime server path** — booting the release binary under `xvfb` shows the
+  `setup` hook running end to end: `app_data_dir()` resolves and seeds bundled
+  defaults, the in-process Axum server binds a dynamic port *inside the Tauri
+  runtime*, `WebviewWindowBuilder::build()` succeeds, `GET /health` → `200 ok`
+  on the bound port, and `GET /` → `303 /setup/` (middleware stack intact).
 
-**Remaining (needs a GUI environment to verify):**
-- Real app icons via `cargo tauri icon` (current `src-tauri/icons/*.png` are
-  generated solid-color placeholders; no `.ico`/`.icns` yet).
-- `cargo tauri build` per platform + actual window/shutdown smoke test (does
-  the window show the chat UI, does close drain the server). The runtime
-  behavior of the `setup` hook is **compile-verified only** so far.
-- Install `tauri-cli` (`cargo install tauri-cli`) for `cargo tauri {icon,dev,build}`.
+So everything except the literal pixels and window-close behavior is verified.
+Linux WebKit/GTK build deps + `tauri-cli` 2.11.3 + `xvfb` are installed in this
+env.
+
+**Remaining (needs a real display / other OSes — can't verify headless):**
+- Visual smoke test: does the webview actually render the chat/setup UI, and
+  does closing the window trigger the graceful drain (`on_window_event` →
+  `Notify` → `serve` shutdown)? That last bit is the only `setup`-hook path
+  still unverified at runtime.
+- Real app icons via `cargo tauri icon <src.png>` (current
+  `src-tauri/icons/*.png` are generated solid-color placeholders; no
+  `.ico`/`.icns` yet).
+- macOS/Windows builds (`.dmg`/`.icns`, `.msi`/`.ico`) — need those OSes or CI.
 
 **Target Tauri v2.** (`cargo tauri init` scaffolds v2; v1 is
 legacy — config schema, path API, and permissions model all differ, and
