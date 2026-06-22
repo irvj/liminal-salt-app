@@ -123,16 +123,35 @@ different cwd (release — embedded assets, no disk dependency), `cargo test
 
 ### Phase B — Tauri scaffolding — in progress
 
-**Landed so far:** the `run_server` reshape (steps 2–3's library half).
-`run_server` is now `bind(data_dir, addr) -> Server` + `Server::serve(shutdown)`
-— data dir is a parameter, the bound `SocketAddr` is exposed via
-`local_addr()`, and shutdown is an injected future. CLI `main.rs` drives the
-new seam (`config::data_dir()` + `ctrl_c`). Covered by `tests/server_boot.rs`
-(port readback, default seeding into the injected dir, serve→request→clean
-shutdown) so the Tauri integration can be built against a verified seam without
-a GUI smoke test. Remaining: the `src-tauri/` crate and the `setup`-hook wiring.
+**Landed so far:**
+- **Boot seam reshape.** `run_server` is now `bind(data_dir, addr) -> Server` +
+  `Server::serve(shutdown)` — data dir is a parameter, the bound `SocketAddr`
+  is exposed via `local_addr()`, shutdown is an injected future. CLI `main.rs`
+  drives it (`config::data_dir()` + `ctrl_c`). Covered by
+  `tests/server_boot.rs` (port readback, default seeding into the injected
+  dir, serve→request→clean shutdown).
+- **`src-tauri/` desktop crate (Tauri v2).** New workspace member
+  `liminal-salt-desktop`. `setup` hook resolves `app_data_dir()`, `bind`s the
+  in-process Axum server on `127.0.0.1:0`, reads the port back, points a
+  `WebviewWindowBuilder` window at `http://127.0.0.1:{port}`, and signals
+  graceful shutdown via an `Arc<Notify>` on window-close. `default-members` in
+  the root manifest keeps the common dev loop scoped to the library crate so
+  core work doesn't pull the WebKit/GTK link.
 
-Resume at step 1 below (scaffolding). **Target Tauri v2** (`cargo tauri init` scaffolds v2; v1 is
+**Verified headless:** `cargo check`/`cargo clippy -p liminal-salt-desktop`
+both pass (this exercises `tauri-build`'s `tauri.conf.json` validation and
+`generate_context!`), so the scaffold + setup wiring compile against the real
+Tauri v2 API. The Linux WebKit/GTK build deps are installed in this env.
+
+**Remaining (needs a GUI environment to verify):**
+- Real app icons via `cargo tauri icon` (current `src-tauri/icons/*.png` are
+  generated solid-color placeholders; no `.ico`/`.icns` yet).
+- `cargo tauri build` per platform + actual window/shutdown smoke test (does
+  the window show the chat UI, does close drain the server). The runtime
+  behavior of the `setup` hook is **compile-verified only** so far.
+- Install `tauri-cli` (`cargo install tauri-cli`) for `cargo tauri {icon,dev,build}`.
+
+**Target Tauri v2.** (`cargo tauri init` scaffolds v2; v1 is
 legacy — config schema, path API, and permissions model all differ, and
 most older Tauri+Axum guides are v1). See "Implementation scope" table below
 for the full task list; the asset-embedding row is already done. Order to

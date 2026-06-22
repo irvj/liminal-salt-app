@@ -11,7 +11,7 @@ See [`docs/planning/ARCHITECTURE_ROADMAP.md`](docs/planning/ARCHITECTURE_ROADMAP
 ## Directory layout
 
 ```
-crates/liminal-salt/          Sole crate. Workspace root is the repo root.
+crates/liminal-salt/          Library + CLI binary crate. Workspace root is the repo root.
   src/
     main.rs                   CLI entry: tracing init + `bind` (with `config::data_dir()`) + `serve` (ctrl_c shutdown).
     lib.rs                    `bind`/`Server::serve` boot seam (data_dir injected; shared by the Tauri shell), `AppState`, public modules.
@@ -26,6 +26,7 @@ crates/liminal-salt/          Sole crate. Workspace root is the repo root.
   default_personas/           Bundled personas embedded via `assets::DefaultPersonas`; seeded into data/personas/ on first boot.
   default_prompts/            Bundled instruction-prompt defaults embedded via `assets::DefaultPrompts`; seeded into data/prompts/ on first boot.
   tests/                      Integration tests. One file per service area.
+src-tauri/                    Tauri v2 desktop shell (`liminal-salt-desktop`). `setup` hook binds the in-process Axum server on 127.0.0.1:0 and points a webview window at it. Excluded from `default-members` (links system WebKit/GTK). tauri.conf.json, capabilities/, placeholder dist/, icons/.
 data/                         Gitignored user state.
   config.json                 App config (snake_case keys): provider, api_key, model, theme, setup_complete, agreement_accepted, etc.
   sessions/session_*.json     Chat sessions.
@@ -200,6 +201,8 @@ When in doubt: add a method to the owning service, call it from the caller. Neve
 
 ```bash
 cargo run -p liminal-salt                                    # run the server (port 8420)
+cargo check -p liminal-salt-desktop                          # type-check the Tauri shell (needs Linux WebKit/GTK dev libs)
+cargo tauri dev / cargo tauri build                          # run/build the desktop app (needs `cargo install tauri-cli` + GUI)
 npm run dev                                                  # tailwind watcher + cargo run, concurrent
 npm run vendor                                               # copy pinned htmx + alpine from node_modules into static/vendor/
 cargo test -p liminal-salt                                   # integration + unit tests (tempdirs)

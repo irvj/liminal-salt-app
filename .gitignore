@@ -176,3 +176,6 @@ target/
 
 *.log
 logs/
+
+# Tauri generated artifacts (schemas, etc.) — produced at build time
+/src-tauri/gen/

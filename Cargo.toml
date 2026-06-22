@@ -1,3 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/liminal-salt"]
+members = ["crates/liminal-salt", "src-tauri"]
+# Default cargo commands (build/test/clippy with no -p) operate on the library
+# crate only — the dev loop. The Tauri desktop shell links system WebKit/GTK
+# libs that aren't needed for core work, so build it explicitly with
+# `cargo build -p liminal-salt-desktop` (or `cargo tauri build`).
+default-members = ["crates/liminal-salt"]

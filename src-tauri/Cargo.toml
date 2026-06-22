@@ -1,0 +1,22 @@
+[package]
+name = "liminal-salt-desktop"
+version = "0.22.0"
+edition = "2024"
+description = "Liminal Salt desktop shell (Tauri)"
+publish = false
+
+[[bin]]
+name = "liminal-salt-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# The same library the CLI binary boots, driven through the bind/serve seam.
+liminal-salt = { path = "../crates/liminal-salt" }
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core permissions for the main window. The UI is served by the in-process Axum server over http://127.0.0.1, not by Tauri's asset protocol, and does not call Tauri IPC commands — so only the core defaults are granted.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
