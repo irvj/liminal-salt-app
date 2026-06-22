@@ -38,17 +38,67 @@ pub struct AppState {
     pub memory: MemoryWorker,
 }
 
-/// Boot the Axum server: build state, seed bundled defaults, start the memory
-/// schedulers, bind a TCP listener at `addr`, and serve until `ctrl_c`.
+/// A bound-but-not-yet-serving Liminal Salt instance, produced by [`bind`].
 ///
-/// This is the single entry point for both the CLI binary and a future Tauri
-/// shell — both can drive the same Axum app from the same library function.
-/// Tracing-subscriber setup is the caller's responsibility (CLI wires it in
-/// `main`; a Tauri shell will use its own subscriber).
-pub async fn run_server(addr: SocketAddr) -> anyhow::Result<()> {
+/// The TCP listener is already bound — so [`Server::local_addr`] reports the
+/// real port even when [`bind`] was called with port 0 — bundled defaults are
+/// seeded, and the router is assembled. Nothing is served yet and no background
+/// scheduler is running. Call [`Server::serve`] to run until a shutdown signal.
+///
+/// Splitting bind from serve is the seam the Tauri shell needs: it reads the
+/// dynamically assigned port *before* serving starts (to point the webview
+/// window at it) and holds the shutdown handle to abort on window-close. The
+/// CLI binary uses the same seam with a fixed port and `ctrl_c`.
+pub struct Server {
+    addr: SocketAddr,
+    listener: tokio::net::TcpListener,
+    app: axum::Router,
+    state: AppState,
+}
+
+impl Server {
+    /// The address the listener is actually bound to. When [`bind`] was called
+    /// with port 0, this reports the OS-assigned port.
+    pub fn local_addr(&self) -> SocketAddr {
+        self.addr
+    }
+
+    /// Start the memory schedulers and serve until `shutdown` resolves, then
+    /// stop the schedulers. Schedulers start here rather than in [`bind`] so a
+    /// caller that binds without serving (e.g. a test inspecting the bound
+    /// port) spawns no background work.
+    pub async fn serve(
+        self,
+        shutdown: impl std::future::Future<Output = ()> + Send + 'static,
+    ) -> anyhow::Result<()> {
+        // Kick off the two memory schedulers. Stopped AFTER the server drains
+        // so any in-flight request that dispatches to the worker still finds
+        // it alive, and so a scheduler mid-LLM-call gets to finish.
+        let scheduler_handles = self.state.memory.start_schedulers(self.state.clone());
+
+        axum::serve(self.listener, self.app)
+            .with_graceful_shutdown(shutdown)
+            .await?;
+
+        MemoryWorker::stop_schedulers(scheduler_handles).await;
+        tracing::info!("schedulers stopped");
+        Ok(())
+    }
+}
+
+/// Build application state, seed bundled defaults into `data_dir`, assemble the
+/// router with its middleware stack, and bind a TCP listener at `addr` — but do
+/// not serve yet. Returns a [`Server`] whose [`Server::local_addr`] reports the
+/// bound address.
+///
+/// `data_dir` is injected by the caller — the CLI passes `config::data_dir()`,
+/// the Tauri shell passes its resolved `app_data_dir()` — so this function holds
+/// no opinion about where state lives. That injection is the one data-root seam
+/// for the Tauri wrap. Tracing-subscriber setup is likewise the caller's
+/// responsibility (CLI wires it in `main`; a Tauri shell uses its own).
+pub async fn bind(data_dir: PathBuf, addr: SocketAddr) -> anyhow::Result<Server> {
     let tera = assets::build_tera()?;
 
-    let data_dir = config::data_dir();
     tokio::fs::create_dir_all(&data_dir).await?;
     let sessions_dir = config::sessions_dir(&data_dir);
     tokio::fs::create_dir_all(&sessions_dir).await?;
@@ -69,12 +119,11 @@ pub async fn run_server(addr: SocketAddr) -> anyhow::Result<()> {
         memory: MemoryWorker::new(),
     };
 
-    // Kick off the two memory schedulers. They're stopped via ctrl_c below
-    // so a scheduler mid-LLM-call gets to finish before the process exits.
-    let scheduler_handles = state.memory.start_schedulers(state.clone());
-
     // Session state (current session id, user timezone, CSRF token) lives in a
-    // process-local memory store. Two-week cookie expiry on inactivity.
+    // process-local memory store with a two-week inactivity expiry. It is
+    // intentionally NOT persisted: each process launch is a fresh session. In a
+    // desktop launch the only visible effect is reopening to the default chat —
+    // the on-disk chat history (data/sessions/*.json) is unaffected.
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_name("liminal_salt_session")
@@ -100,24 +149,12 @@ pub async fn run_server(addr: SocketAddr) -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http());
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    let bound = listener.local_addr()?;
+    let addr = listener.local_addr()?;
 
-    println!();
-    println!("Liminal Salt v{}", env!("CARGO_PKG_VERSION"));
-    println!("Listening on http://{bound}");
-    println!("Press Ctrl-C to stop.");
-    println!();
-
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-            tracing::info!("ctrl_c received, shutting down");
-        })
-        .await?;
-
-    // Stop the schedulers AFTER the server drains so any in-flight request
-    // that would dispatch to the worker still finds the worker alive.
-    MemoryWorker::stop_schedulers(scheduler_handles).await;
-    tracing::info!("schedulers stopped");
-    Ok(())
+    Ok(Server {
+        addr,
+        listener,
+        app,
+        state,
+    })
 }

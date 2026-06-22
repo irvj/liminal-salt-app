@@ -4,7 +4,7 @@ Navigation + conventions for Claude working in this repo. Written for Claude, no
 
 ## What this is
 
-Liminal Salt — Rust + Axum + Tera web chatbot on top of OpenRouter. No database; state lives in JSON/Markdown files under `data/`. Single-process (hyper via Axum). HTMX + Alpine.js + Tailwind on the frontend. Bundled assets (templates, static, default personas/prompts) are embedded in the binary via `rust-embed`, so `cargo build --release` is a self-contained binary; in dev (`cargo run`) the same code reads from disk so template/static edits hot-reload. The library entry point `liminal_salt::run_server` boots the Axum app from any host — currently the CLI binary, Tauri desktop next.
+Liminal Salt — Rust + Axum + Tera web chatbot on top of OpenRouter. No database; state lives in JSON/Markdown files under `data/`. Single-process (hyper via Axum). HTMX + Alpine.js + Tailwind on the frontend. Bundled assets (templates, static, default personas/prompts) are embedded in the binary via `rust-embed`, so `cargo build --release` is a self-contained binary; in dev (`cargo run`) the same code reads from disk so template/static edits hot-reload. The library boot seam is `liminal_salt::bind(data_dir, addr) -> Server` then `Server::serve(shutdown)` — `bind` seeds defaults, assembles the router, and binds the listener (exposing the bound `SocketAddr` via `local_addr()`); `serve` starts the schedulers and runs until the injected shutdown future resolves. Both the CLI binary and the Tauri desktop shell drive the same seam.
 
 See [`docs/planning/ARCHITECTURE_ROADMAP.md`](docs/planning/ARCHITECTURE_ROADMAP.md) for the milestone plan, ordering rationale, and what's deliberately out of scope.
 
@@ -13,8 +13,8 @@ See [`docs/planning/ARCHITECTURE_ROADMAP.md`](docs/planning/ARCHITECTURE_ROADMAP
 ```
 crates/liminal-salt/          Sole crate. Workspace root is the repo root.
   src/
-    main.rs                   CLI entry: tracing init + call to `run_server`.
-    lib.rs                    `run_server` (boot sequence, shared by future Tauri shell), `AppState`, public modules.
+    main.rs                   CLI entry: tracing init + `bind` (with `config::data_dir()`) + `serve` (ctrl_c shutdown).
+    lib.rs                    `bind`/`Server::serve` boot seam (data_dir injected; shared by the Tauri shell), `AppState`, public modules.
     assets.rs                 `rust-embed` bundles (templates, static, default personas/prompts) + Tera/static helpers.
     routes.rs                 Router assembly.
     tera_extra.rs             Custom Tera filters (markdown, display_name, escapejs).
@@ -147,7 +147,7 @@ Written by `session.rs`. `skip_serializing_if = "Option::is_none"` keeps the on-
 
 Best-effort scans (`list_sessions`, `list_persona_threads`, `list_themes`, `list_files`) stay `Vec<T>` — individual failures shouldn't fail the whole list. Simple attribute reads (`get_memory_content`, `persona::load_identity`) return `String` with "" as the null-object value; no Option wrapping needed at that layer.
 
-**Tauri seam.** `config::data_dir()` is the single function that changes for the Tauri wrap — Tauri will have it return `app_data_dir()`. No other path literal in the crate hard-codes the data root. Bundled assets are not a seam: `assets::{Templates, Static, DefaultPersonas, DefaultPrompts}` are compile-time embedded via `rust-embed` (with `debug-embed` so dev still hot-reloads from disk), so the same code path serves both CLI and Tauri builds. `lib::run_server(addr)` is the boot entry point both binaries call.
+**Tauri seam.** The data root is injected: `bind(data_dir, addr)` takes it as a parameter rather than calling a global. The CLI passes `config::data_dir()`; the Tauri shell passes its resolved `app_data_dir()` (off the `AppHandle` path resolver in the `setup` hook — not a free function, which is why it's injected rather than swapped into `config::data_dir()`). No other path literal in the crate hard-codes the data root. Bundled assets are not a seam: `assets::{Templates, Static, DefaultPersonas, DefaultPrompts}` are compile-time embedded via `rust-embed` (with `debug-embed` so dev still hot-reloads from disk), so the same code path serves both CLI and Tauri builds. `bind`/`Server::serve` is the boot seam both binaries call.
 
 ## Separation of concerns — hard rules
 

@@ -121,9 +121,18 @@ hot-reload), `cargo build --release -p liminal-salt` + run the binary from a
 different cwd (release — embedded assets, no disk dependency), `cargo test
 -p liminal-salt`, `cargo clippy -p liminal-salt --all-targets -- -D warnings`.
 
-### Phase B — Tauri scaffolding — not started
+### Phase B — Tauri scaffolding — in progress
 
-Resume here. **Target Tauri v2** (`cargo tauri init` scaffolds v2; v1 is
+**Landed so far:** the `run_server` reshape (steps 2–3's library half).
+`run_server` is now `bind(data_dir, addr) -> Server` + `Server::serve(shutdown)`
+— data dir is a parameter, the bound `SocketAddr` is exposed via
+`local_addr()`, and shutdown is an injected future. CLI `main.rs` drives the
+new seam (`config::data_dir()` + `ctrl_c`). Covered by `tests/server_boot.rs`
+(port readback, default seeding into the injected dir, serve→request→clean
+shutdown) so the Tauri integration can be built against a verified seam without
+a GUI smoke test. Remaining: the `src-tauri/` crate and the `setup`-hook wiring.
+
+Resume at step 1 below (scaffolding). **Target Tauri v2** (`cargo tauri init` scaffolds v2; v1 is
 legacy — config schema, path API, and permissions model all differ, and
 most older Tauri+Axum guides are v1). See "Implementation scope" table below
 for the full task list; the asset-embedding row is already done. Order to
