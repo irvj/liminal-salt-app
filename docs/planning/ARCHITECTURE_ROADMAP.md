@@ -1,6 +1,6 @@
 # Liminal Salt — Architecture Roadmap
 
-**Updated:** 2026-05-01
+**Updated:** 2026-06-22
 **Status:** M1 (Python → Rust) complete at v0.20.1. M2 (multi-provider) shipped. M3 (user-editable prompts) shipped. M4 (Tauri desktop) Phase A — asset-embedding pre-work — shipped on `tauri-build-refactor` branch (pushed to origin, 10 commits ahead of main, not yet merged). Phase B (actual Tauri scaffolding) is the next concrete unit of work; see "Pre-M4 work" + "Implementation scope" below. Architecture is mature; this roadmap tracks the refactors and milestones needed for the architecture to become immaterial to further product work.
 
 ---
@@ -123,22 +123,50 @@ different cwd (release — embedded assets, no disk dependency), `cargo test
 
 ### Phase B — Tauri scaffolding — not started
 
-Resume here. See "Implementation scope" table below for the full task list;
-the asset-embedding row is already done. Order to tackle in:
+Resume here. **Target Tauri v2** (`cargo tauri init` scaffolds v2; v1 is
+legacy — config schema, path API, and permissions model all differ, and
+most older Tauri+Axum guides are v1). See "Implementation scope" table below
+for the full task list; the asset-embedding row is already done. Order to
+tackle in:
 
 1. `cargo tauri init` → adds `src-tauri/` workspace member + `tauri.conf.json`.
-2. Wire `liminal_salt::run_server(addr)` into Tauri's `setup` hook with
-   `127.0.0.1:0`. `run_server` currently prints the bound port and shuts
-   down on `ctrl_c`; it'll need a small extension to *return* the bound
-   `SocketAddr` and accept a parallel shutdown signal so Tauri can abort it
-   on window-close.
-3. Swap `config::data_dir()` to return Tauri's `app_data_dir()` when running
-   in the Tauri shell. Keep the CLI binary's behavior identical for
-   browser-via-cargo users.
-4. Generate icons via `cargo tauri icon`; `cargo tauri build` per platform.
+2. **Reshape `run_server` as the shared seam** (one change, both binaries
+   call it). New signature takes the **data dir as a parameter** and returns
+   the bound `SocketAddr`; it also accepts a parallel shutdown signal. Today
+   it calls `config::data_dir()` internally, *prints* the port, and shuts
+   down only on `ctrl_c`. After the change:
+   - CLI binary passes `config::data_dir()` and wires `ctrl_c`.
+   - Tauri shell passes the resolved `app_data_dir()` (see step 3) and wires
+     a window-close abort.
+3. **Data dir via injection, not a global swap.** Tauri's `app_data_dir()`
+   is *not* a free function — it comes off the `AppHandle`'s path resolver,
+   which only exists inside the `setup` hook. So `config::data_dir()` can't
+   reach it. Instead, resolve the path in the `setup` hook and pass it into
+   `run_server` (step 2). `data_dir()` is already called exactly once and
+   stored in `AppState.data_dir`, so the data root is already
+   dependency-injected — this just moves the single call site up into each
+   binary's `main`. CLI behavior stays identical.
+4. Wire `run_server` into the `setup` hook on `127.0.0.1:0`; read back the
+   bound port and point the window URL at it.
+5. Generate icons via `cargo tauri icon`; `cargo tauri build` per platform.
 
-Before starting Phase B, also resolve the two open questions in the section
-below (session-store persistence, CSRF in same-origin Tauri).
+**Resolved open questions** (were the two below):
+- **Session store** — accept reset on restart. No file-backed store; every
+  app launch is a fresh `tower-sessions` session (re-selects the default
+  chat). Chat data on disk is unaffected.
+- **CSRF** — keep it as-is. Same-origin Tauri context works fine; no
+  conditional disabling.
+
+**Cross-platform build deps** (target: macOS, Windows, Linux). The webview is
+the OS's, not bundled — but build prerequisites differ:
+- **macOS** — system WKWebView; Xcode command-line tools.
+- **Windows** — WebView2 (Evergreen runtime; bundle the bootstrapper in the
+  installer for machines without it).
+- **Linux** — links `webkit2gtk-4.1` + `libsoup-3.0` dev packages at build
+  time (a missing dev package surfaces as a confusing linker error, not a
+  clear "install X" message). Document the `apt`/`dnf` package names in the
+  build instructions; this machine needs them before the first
+  `cargo tauri build`.
 
 ### Architecture
 
@@ -166,18 +194,27 @@ below (session-store persistence, CSRF in same-origin Tauri).
 | Task | Details |
 |------|---------|
 | Scaffold | `cargo tauri init` adds `src-tauri/` as a workspace member. Configure `tauri.conf.json` (window size, title, icons, app ID `com.liminalsalt.app`). |
-| Axum integration | Call `liminal_salt::run_server(addr)` from Tauri's `setup` hook with `127.0.0.1:0` to pick a dynamic port; read back the actual port, pass to the window URL. (`run_server` will need to surface the bound port — currently it prints it — that's a small extension.) |
+| Axum integration | Call `liminal_salt::run_server(data_dir, addr, shutdown)` from Tauri's `setup` hook with `127.0.0.1:0` to pick a dynamic port; read back the returned `SocketAddr`, pass to the window URL. (`run_server` is reshaped to take the data dir as a param, return the bound addr, and accept a shutdown signal — see Phase B steps 2–3.) |
 | Window management | Single window → `http://127.0.0.1:{port}`. Disable dev tools in release. |
 | Lifecycle | Axum task spawned on Tauri setup; abort on window-close event. Currently `run_server` shuts down on `ctrl_c`; Tauri will need a parallel signal hook (extension on `run_server`). |
-| Data directory | Swap `config::data_dir()` to return Tauri's `app_data_dir()`. This is the only remaining path-resolver seam — no other literal in the crate hard-codes the data root. |
+| Data directory | Resolve `app_data_dir()` off the `AppHandle` in the `setup` hook and pass it into `run_server`. `data_dir()` is already injected (one call site → `AppState.data_dir`), so this moves the call up into each binary's `main` rather than swapping the function body. No other literal in the crate hard-codes the data root. |
 | Asset embedding | **Done (pre-M4).** All bundled assets are embedded via `crate::assets` (rust-embed) or `include_str!`. Tauri build inherits this for free. |
 | App icons | Generate `.icns` / `.ico` / `.png` via `cargo tauri icon`. |
 | Build | `cargo tauri build` per target platform. |
 
-### Open questions to resolve during M4
+### Open questions to resolve during M4 — resolved
 
-- **Session store persistence.** Current `tower-sessions` `MemoryStore` loses state on restart — fine for a dev server, awkward in a desktop app. Decide: persist session state (file-backed store), or accept session reset on app restart (simpler; the only real cost is re-selecting the current chat).
-- **CSRF in a same-origin Tauri context.** Keep it (simpler than conditionally disabling), or make it conditional on "running outside Tauri." Default to keeping it — the overhead is negligible and the code is already there.
+- **Session store persistence.** *Resolved: accept reset on restart.* No
+  file-backed store. Each launch is a fresh `tower-sessions` session; the
+  only visible cost is reopening to the default chat. The `data/sessions/*.json`
+  chat history (a different "session" — owned by `session.rs`) is unaffected.
+- **CSRF in a same-origin Tauri context.** *Resolved: keep it as-is.* The
+  same-origin webview works with the existing CSRF layer; no conditional
+  disabling.
+
+Both folded into Phase B above. No remaining architectural unknowns — the
+rest is mechanical config (window size/title, `com.liminalsalt.app` ID,
+icons, devtools-off-in-release, dynamic-port readback).
 
 ### Data directory
 
